@@ -6,11 +6,12 @@ import { Link } from 'react-router-dom';
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
+  const [userType, setUserType] = useState('user'); // Default value is 'user'
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log('Email:', email);
     console.log('Password:', password);
+    console.log('user Type:', userType);
   };
 
   return (
@@ -34,6 +35,13 @@ const LoginPage = () => {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
+          <UserTypeSelect
+            value={userType}
+            onChange={(e) => setUserType(e.target.value)}
+          >
+            <option value="user">User</option>
+            <option value="driver">Driver</option>
+          </UserTypeSelect>
           <SubmitButton type="submit">Login</SubmitButton>
         </LoginForm>
         <p>New here? <Link to="/signup">Signup</Link></p>
@@ -43,6 +51,22 @@ const LoginPage = () => {
 };
 
 // Styled Components
+
+const UserTypeSelect = styled.select`
+  width: 100%;
+  padding: 15px;
+  margin-bottom: 20px;
+  border: 2px solid #ddd;
+  border-radius: 25px;
+  font-size: 16px;
+  background-color: #f9f9f9;
+  transition: border-color 0.3s;
+
+  &:focus {
+    outline: none;
+    border-color: #007bff;
+  }
+`;
 const LoginPageContainer = styled.div`
   position: relative;
   display: flex;

@@ -9,6 +9,8 @@ import RegistrationPage from './pages/RegistrationPage';
 import Home from './pages/Home';
 import Test from './pages/Test';
 import Header from './components/Header';
+import Map from './pages/Map';
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   
@@ -20,6 +22,7 @@ root.render(
     <Route path="/signup" element={<RegistrationPage></RegistrationPage>} />
     <Route path="/test" element={<Test></Test>} />
     <Route path="/home" element={<Home></Home>} />
+    <Route path="/map" element={<Map></Map>} />
     </Routes>
     </Router>
 );

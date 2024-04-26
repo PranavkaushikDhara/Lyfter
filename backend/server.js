@@ -4,12 +4,22 @@ const cors = require('cors');
 app.use(cors());
 app.use(express.json());
 const axios = require('axios');
+const { Client } = require('@elastic/elasticsearch');
+const client = new Client({
+  node: 'https://872ce0c234044163ad8bd832161a55b9.us-central1.gcp.cloud.es.io:443', // Elasticsearch endpoint
+  auth: {
+    apiKey: { // API key ID and secret
+      id: 'farLGI8BeqwjdO7PczZR',
+      api_key: 'EXBjcmpYRIWt5Hnd-M0Pxg',
+    }
+  }
+})
 app.listen(8000,()=>{
     console.log("Server started on 8000")
 })
-
+const apiKey = 'AIzaSyCqCLH7DZCPhh9LSJhERje4yuOomqNMsEE';
 async function getLocationCoordinates(location) {
-    const apiKey = 'AIzaSyCqCLH7DZCPhh9LSJhERje4yuOomqNMsEE';
+    
     const encodedLocation = encodeURIComponent(location);
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedLocation}&key=${apiKey}`;
     // console.log(url);
@@ -36,5 +46,71 @@ app.post("/getLocationCoordinates",async(req,res)=>{
     const dest=await getLocationCoordinates(req.body.dest);
     // console.log(start);
     // console.log(dest);
+    sendRequest(req.body.start,req.body.dest);
     res.json({start:start,dest:dest})
 })
+
+async function sendRequest(start,dest){
+  const url = `https://maps.googleapis.com/maps/api/directions/json?destination=${dest}&origin=${start}&transit_mode=train&key=${apiKey}`;
+  const response = await axios.get(url);
+  console.log(response.data.routes[0].legs[0].duration.text);
+}
+
+app.post("/addUser",async(req,res)=>{
+
+  const user=req.body;
+  const body = {
+      mappings: {
+          properties: {
+              email:{type:'text'},
+              name: { type: 'text' },
+              password: { type: 'text' },
+              type: { type: 'text' }
+          }
+      }
+  };
+  if(!await client.indices.exists({index: 'users'})){
+      await client.indices.create({ index: 'users', body: body })
+  }
+  await client.index({
+      index: 'users',
+      document: {
+          email:user.email,
+          name:user.name,
+          password:user.password,
+          type:user.type
+      },
+    })
+  
+  res.json({ message: "Received post data" });
+})
+
+app.get("/getAllUsers",async(req,res)=>{
+  const body = {
+      mappings: {
+          properties: {
+              email:{type:'text'},
+              name: { type: 'text' },
+              password: { type: 'text' },
+              type:{ type: 'text' },
+              }
+          }
+      }
+  if(!await client.indices.exists({index: 'users'})){
+      await client.indices.create({ index: 'users', body: body })
+  }
+  try {
+  const searchResult = await client.search({
+      index: 'users',
+      body: {
+          query: {
+              match_all: {}
+          }
+      }
+  });
+  res.json(searchResult.hits.hits);
+  } catch (error) {
+      console.error(`Error getting documents from posts`, error);
+  }
+
+});
