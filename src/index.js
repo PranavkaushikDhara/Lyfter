@@ -10,6 +10,8 @@ import Home from './pages/Home';
 import Test from './pages/Test';
 import Header from './components/Header';
 import Map from './pages/Map';
+import Loading from './components/Loading';
+import DriverLandingPage from './pages/DriverLandingPage';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -23,6 +25,8 @@ root.render(
     <Route path="/test" element={<Test></Test>} />
     <Route path="/home" element={<Home></Home>} />
     <Route path="/map" element={<Map></Map>} />
+    <Route path="/loading" element={<Loading></Loading>} />
+    <Route path='/driverHome' element={<DriverLandingPage></DriverLandingPage>}/>
     </Routes>
     </Router>
 );

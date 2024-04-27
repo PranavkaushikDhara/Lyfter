@@ -1,18 +1,36 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import loginImg from '../assets/login.webp';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [userType, setUserType] = useState('user'); // Default value is 'user'
-  const handleSubmit = (e) => {
+  const navigate=useNavigate()
+  const handleSubmit = async(e) => {
     e.preventDefault();
-    console.log('Email:', email);
-    console.log('Password:', password);
-    console.log('user Type:', userType);
+    const response=await fetch("http://localhost:8000/authorizeUser",{
+      method:"POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body:JSON.stringify({email:email,password:password,type:userType})
+    })
+    const user=await response.json();
+    console.log(user.length);
+    if (user[0]) {
+
+      localStorage.setItem('userName', user[0]._source.name);
+      localStorage.setItem('email', user[0]._source.email);
+      localStorage.setItem('type', user[0]._source.type);
+      navigate('/');
+    } else {
+      alert('Invalid email or password or user type, or your account may be disabled.');
   };
+}
+
+  
 
   return (
     <LoginPageContainer>

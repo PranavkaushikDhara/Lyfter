@@ -46,14 +46,15 @@ app.post("/getLocationCoordinates",async(req,res)=>{
     const dest=await getLocationCoordinates(req.body.dest);
     // console.log(start);
     // console.log(dest);
-    sendRequest(req.body.start,req.body.dest);
-    res.json({start:start,dest:dest})
+    const duration=await sendRequest(req.body.start,req.body.dest);
+    console.log(duration)
+    res.json({start:start,dest:dest,duration:duration})
 })
 
 async function sendRequest(start,dest){
   const url = `https://maps.googleapis.com/maps/api/directions/json?destination=${dest}&origin=${start}&transit_mode=train&key=${apiKey}`;
   const response = await axios.get(url);
-  console.log(response.data.routes[0].legs[0].duration.text);
+  return response.data.routes[0].legs[0].duration.text;
 }
 
 app.post("/addUser",async(req,res)=>{
@@ -102,6 +103,93 @@ app.get("/getAllUsers",async(req,res)=>{
   try {
   const searchResult = await client.search({
       index: 'users',
+      body: {
+          query: {
+              match_all: {}
+          }
+      }
+  });
+  res.json(searchResult.hits.hits);
+  } catch (error) {
+      console.error(`Error getting documents from posts`, error);
+  }
+
+});
+
+app.post("/authorizeUser",async(req,res)=>{
+  console.log(req.body);
+  if(!await client.indices.exists({
+      index:'users'
+  })){
+    console.log("Index does not exist")
+      res.json([]);
+  }
+  const searchResult = await client.search({
+      index: 'users',
+      body: {
+          query: {
+              bool: {
+                  must: [
+                      { match: { email: req.body.email }},
+                      { match: { password: req.body.password }},
+                      { match: { type: req.body.type }}
+                  ]
+              }
+          }
+      }
+  });
+  console.log(searchResult)
+  res.json(searchResult.hits.hits);
+})
+
+app.post("/bookRide",async (req,res)=>{
+  const ride=req.body;
+  const body = {
+      mappings: {
+          properties: {
+              userEmail:{type:'text'},
+              userName: { type: 'text' },
+              start: { type: 'text' },
+              dest: { type: 'text' },
+              duration: { type: 'text' }
+          }
+      }
+  };
+  if(!await client.indices.exists({index: 'rides'})){
+      await client.indices.create({ index: 'rides', body: body })
+  }
+  await client.index({
+      index: 'rides',
+      document: {
+        userEmail:ride.userEmail,
+        userName: ride.userName,
+        start: ride.start,
+        dest: ride.dest,
+        duration: ride.duration
+      },
+    })
+  
+  res.json({ message: "Added the ride" });
+})
+
+app.get("/getAllRides",async(req,res)=>{
+  const body = {
+    mappings: {
+        properties: {
+            userEmail:{type:'text'},
+            userName: { type: 'text' },
+            start: { type: 'text' },
+            dest: { type: 'text' },
+            duration: { type: 'text' }
+        }
+    }
+};
+  if(!await client.indices.exists({index: 'rides'})){
+      await client.indices.create({ index: 'rides', body: body })
+  }
+  try {
+  const searchResult = await client.search({
+      index: 'rides',
       body: {
           query: {
               match_all: {}

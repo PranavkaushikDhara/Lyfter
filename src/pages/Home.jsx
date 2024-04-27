@@ -1,11 +1,23 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import ride from '../assets/ride.webp';
 import GooglePlacesAutocomplete from 'react-google-places-autocomplete';
+import { useNavigate } from 'react-router-dom';
+import LyfterMap from './Map';
+
 const Home = () => {
     const [startLocation, setStartLocation] = useState("")
     const [destLocation, setDestLocation] = useState("")
 
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        // Check if userName key exists in localStorage
+        if (!localStorage.getItem('userName')) {
+            // If not, navigate to the login page
+            navigate('/login');
+        }
+    }, [navigate]);
     const handleSubmit = async(e) => {
       e.preventDefault();
       const response=await fetch("http://localhost:8000/getLocationCoordinates",{
@@ -17,8 +29,15 @@ const Home = () => {
           start:startLocation,dest:destLocation
         }),
       })
+      const originalLocations={
+        start:startLocation,
+        dest:destLocation
+      }
+      console.log(originalLocations)
       
-      console.log(await response.json())
+      const places=await response.json()
+      console.log(places)
+      navigate("/map",{ state: {places:places,originalLocations:originalLocations} })
   };
 
     return (
