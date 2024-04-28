@@ -24,6 +24,7 @@ const LoginPage = () => {
       localStorage.setItem('userName', user[0]._source.name);
       localStorage.setItem('email', user[0]._source.email);
       localStorage.setItem('type', user[0]._source.type);
+      
       navigate('/');
     } else {
       alert('Invalid email or password or user type, or your account may be disabled.');

@@ -21,10 +21,11 @@ const Loading = () => {
 
       if (response.ok) {
         const data = await response.json();
-        if(data._source.rideStatus==="booked"){
+        if(Object.keys(data).length === 0){
             alert("Ride accepted, Your driver is on the way")
             navigate("/home")
         }
+        
         // setRideStatus(data.status); // Assuming the status is under a 'status' key in the response JSON
       } else {
         throw new Error('Failed to fetch ride status');

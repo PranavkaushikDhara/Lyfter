@@ -45,9 +45,10 @@ const DriverLandingPage = () => {
           },
           body: JSON.stringify({ rideId }) // Pass id in the body
     })
-
+    const updatedRides = rides.filter(r => r._id !== rideId); 
+    setRides(updatedRides);
     const data=await response.json();
-    console.log(data)
+    //Update the rides and refresh the page
    
   };
 
