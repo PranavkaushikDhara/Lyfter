@@ -151,25 +151,28 @@ app.post("/bookRide",async (req,res)=>{
               userName: { type: 'text' },
               start: { type: 'text' },
               dest: { type: 'text' },
+              rideStatus:{type:'text'},
               duration: { type: 'text' }
           }
       }
   };
   if(!await client.indices.exists({index: 'rides'})){
       await client.indices.create({ index: 'rides', body: body })
+      console.log("Created new index")
   }
-  await client.index({
+  const addedRide=await client.index({
       index: 'rides',
       document: {
         userEmail:ride.userEmail,
         userName: ride.userName,
         start: ride.start,
         dest: ride.dest,
+        rideStatus:"requested",
         duration: ride.duration
       },
     })
-  
-  res.json({ message: "Added the ride" });
+
+  res.json({ message: "Added the ride" ,id:addedRide._id});
 })
 
 app.get("/getAllRides",async(req,res)=>{
@@ -180,6 +183,7 @@ app.get("/getAllRides",async(req,res)=>{
             userName: { type: 'text' },
             start: { type: 'text' },
             dest: { type: 'text' },
+            rideStatus:{type:'text'},
             duration: { type: 'text' }
         }
     }
@@ -191,9 +195,13 @@ app.get("/getAllRides",async(req,res)=>{
   const searchResult = await client.search({
       index: 'rides',
       body: {
-          query: {
-              match_all: {}
+        query: {
+          bool: {
+              must: [
+                  { match: { rideStatus: "requested" }},
+              ]
           }
+      }
       }
   });
   res.json(searchResult.hits.hits);
@@ -202,3 +210,33 @@ app.get("/getAllRides",async(req,res)=>{
   }
 
 });
+
+app.post("/getRideStatus",async(req,res)=>{
+  //call get all rides here
+  const id=req.body.id;
+  const response = await axios.get('http://localhost:8000/getAllRides');
+  const ride = response.data.find(ride => ride._id === id);
+  
+  res.json(ride);
+  //now from the response.data only send back the document with this id 
+})
+
+
+app.post("/acceptRide",async(req,res)=>{
+  //call get all rides here
+  const id=req.body.rideId;
+  const response = await axios.get('http://localhost:8000/getAllRides');
+  const ride =await response.data.find(ride => ride._id === id);
+  const updateResult = await client.update({
+    index: 'rides',
+    id: id,
+    doc:{
+      rideStatus: "booked",
+    }
+    
+});
+  console.log(updateResult)
+  res.json(ride);
+  
+  //now from the response.data only send back the document with this id 
+})

@@ -40,8 +40,9 @@ function LyfterMap() {
 
       body:JSON.stringify({userEmail:localStorage.getItem("email") ,userName:localStorage.getItem("userName"),start:originalplaces.start,dest:originalplaces.dest,duration:places.duration})
     })
-
-    navigate("/loading");
+    
+    const responseObj=await response.json()
+    navigate("/loading",{ state: responseObj.id });
     
   };
 

@@ -2,14 +2,23 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 // import RideCard from './RideCard'; // Assuming there's a RideCard component to display each ride
 import RideCard from '../components/RideCard';
+import { useNavigate } from 'react-router-dom';
 
 const DriverLandingPage = () => {
   const [rides, setRides] = useState([]);
-
+  const navigate=useNavigate()
+  const userType=localStorage.getItem("type");
   // Fetch available rides when the component mounts
   useEffect(() => {
+    const userType=localStorage.getItem("type");
+    if(userType==='user'||!userType){
+        navigate("/home");
+        alert("Not authenticated ")
+    }
     fetchAvailableRides();
   }, []);
+
+
 
   // Function to fetch available rides
   const fetchAvailableRides = async () => {
@@ -25,15 +34,21 @@ const DriverLandingPage = () => {
   };
 
   // Function to handle ride acceptance
-  const handleAcceptRide = async (rideId) => {
-    // try {
-    //   // Call the API function to accept the ride
-    //   await acceptRide(rideId);
-    //   // Update the list of rides after accepting
-    //   fetchAvailableRides();
-    // } catch (error) {
-    //   console.error('Error accepting ride:', error);
-    // }
+  const handleAcceptRide = async (ride) => {
+    
+    const rideId=ride._id
+    console.log(rideId)
+    const response=await fetch("http://localhost:8000/acceptRide",{
+        method:'POST',
+        headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ rideId }) // Pass id in the body
+    })
+
+    const data=await response.json();
+    console.log(data)
+   
   };
 
   return (
@@ -44,10 +59,11 @@ const DriverLandingPage = () => {
       ) : (
         <RideList>
           {rides.map((ride,index) => (
+            
             <RideCard
               key={index}
               ride={ride}
-              onAccept={() => {handleAcceptRide(ride.id)}}
+              onAccept={() => {console.log(ride); handleAcceptRide(ride)}}
             />
           ))}
         </RideList>
