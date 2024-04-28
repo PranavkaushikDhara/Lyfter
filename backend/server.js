@@ -217,7 +217,7 @@ app.post("/getRideStatus",async(req,res)=>{
   const response = await axios.get('http://localhost:8000/getAllRides');
   const ride = response.data.find(ride => ride._id === id);
   
-  res.json(ride);
+  res.json({ride});
   //now from the response.data only send back the document with this id 
 })
 
