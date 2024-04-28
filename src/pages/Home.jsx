@@ -28,16 +28,26 @@ const Home = () => {
         body: JSON.stringify({
           start:startLocation,dest:destLocation
         }),
-      })
+      });
+
+      const divvyResponse=await fetch("http://localhost:8000/getNearestDivvy",{
+        method:"POST",
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          start:startLocation,dest:destLocation
+        }),
+      });
       const originalLocations={
         start:startLocation,
         dest:destLocation
       }
       console.log(originalLocations)
-      
+      const divvySpots = await divvyResponse.json()
       const places=await response.json()
       console.log(places)
-      navigate("/map",{ state: {places:places,originalLocations:originalLocations} })
+      navigate("/map",{ state: {places:places,originalLocations:originalLocations, divvySpots:divvySpots} })
   };
 
     return (

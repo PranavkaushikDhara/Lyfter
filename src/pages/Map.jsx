@@ -7,10 +7,11 @@ import currentLocationImg from '../assets/currentLocation.png';
 import destImage from '../assets/destImage.png';
 
 function LyfterMap() {
-  
+
   const location = useLocation();
   const places = location.state?.places;
   const originalplaces = location.state?.originalLocations;
+  const divvySpots = location.state?.divvySpots;
   const navigate = useNavigate();
   console.log(places)
   // Check if userName key exists in localStorage, if not navigate to /login
@@ -31,19 +32,19 @@ function LyfterMap() {
   const position = { lat: 41.892, lng: -87.6416 };
 
   // Function to handle the card button click
-  const handleCardButtonClick = async() => {
-    const response=await fetch("http://localhost:8000/bookRide",{
-      method:"POST",
+  const handleCardButtonClick = async () => {
+    const response = await fetch("http://localhost:8000/bookRide", {
+      method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
 
-      body:JSON.stringify({userEmail:localStorage.getItem("email") ,userName:localStorage.getItem("userName"),start:originalplaces.start,dest:originalplaces.dest,duration:places.duration})
+      body: JSON.stringify({ userEmail: localStorage.getItem("email"), userName: localStorage.getItem("userName"), start: originalplaces.start, dest: originalplaces.dest, duration: places.duration })
     })
-    
-    const responseObj=await response.json()
-    navigate("/loading",{ state: responseObj.id });
-    
+
+    const responseObj = await response.json()
+    navigate("/loading", { state: responseObj.id });
+
   };
 
   return (
@@ -54,7 +55,7 @@ function LyfterMap() {
         <p>Start Location: {originalplaces.start}</p>
         <p>Destination Location: {originalplaces.dest}</p>
         <p>Duration: {places.duration}</p>
-        <button style={{color:"white",backgroundColor:"black"}} onClick={handleCardButtonClick}>Book Ride</button>
+        <button style={{ color: "white", backgroundColor: "black" }} onClick={handleCardButtonClick}>Book Ride</button>
       </div>
 
       {/* Map component */}
@@ -70,18 +71,30 @@ function LyfterMap() {
               },
             }}
           />
-          <Directions places={places}></Directions>
+          <Marker
+            position={{ lat: divvySpots.nearestDivvyFromStart.latitude, lng: divvySpots.nearestDivvyFromStart.longitude }}
+            icon={{
+              url: 'http://maps.gstatic.com/mapfiles/ms2/micons/blue.png',
+            }}
+          />
+          <Marker
+            position={{ lat: divvySpots.nearestDivvyFromDestination.latitude, lng: divvySpots.nearestDivvyFromDestination.longitude }}
+            icon={{
+              url: 'http://maps.gstatic.com/mapfiles/ms2/micons/blue.png',
+            }}
+          />
+          <Directions places={places} divvySpots={divvySpots}></Directions>
         </Map>
       </APIProvider>
     </div>
   );
 }
 
-function Directions({ places }) {
+function Directions({ places, divvySpots }) {
   const map = useMap();
   const routesLibrary = useMapsLibrary("routes");
-  const [directionsService, setDirectionsService] = useState(null);
-  const [directionsRenderer, setDirectionsRenderer] = useState(null);
+  const [directionsServices, setDirectionsServices] = useState({});
+  const [directionsRenderers, setDirectionsRenderers] = useState({});
   const [originMarker, setOriginMarker] = useState(null);
   const [destinationMarker, setDestinationMarker] = useState(null);
 
@@ -89,47 +102,83 @@ function Directions({ places }) {
     if (!routesLibrary || !map) {
       return;
     }
-    setDirectionsService(new window.google.maps.DirectionsService());
-    setDirectionsRenderer(new window.google.maps.DirectionsRenderer({ map }));
+    const travelModes = ['DRIVING', 'BICYCLING']; // Add more travel modes as needed
+    const services = {};
+    const renderers = {};
+
+    travelModes.forEach(mode => {
+      services[mode] = new window.google.maps.DirectionsService();
+      renderers[mode] = new window.google.maps.DirectionsRenderer({ map });
+    });
+
+    setDirectionsServices(services);
+    setDirectionsRenderers(renderers);
   }, [routesLibrary, map]);
 
   useEffect(() => {
-    if (!directionsService || !directionsRenderer) return;
-    const origin = { lat: places.start.latitude, lng: places.start.longitude }; // Origin coordinates
-    const destination = { lat: places.dest.latitude, lng: places.dest.longitude }; // Destination coordinates
+    if (!directionsServices || !directionsRenderers) return;
 
-    const request = {
+    
+    const directionsRequests = Object.keys(directionsServices).map(mode => {
+
+      const origin = mode === "BICYCLING" ?
+      { lat: divvySpots.nearestDivvyFromStart.latitude, lng: divvySpots.nearestDivvyFromStart.longitude } :
+      { lat: places.start.latitude, lng: places.start.longitude };
+
+    const destination = mode === "BICYCLING" ?
+      { lat: divvySpots.nearestDivvyFromDestination.latitude, lng: divvySpots.nearestDivvyFromDestination.longitude } :
+      { lat: places.dest.latitude, lng: places.dest.longitude };
+
+    const requestTemplate = {
       origin,
       destination,
-      travelMode: 'DRIVING'
+      travelMode: '',
     };
 
-    directionsService.route(request, (result, status) => {
-      console.log(status); // Log the status
-      if (status === 'OK') {
-        console.log(result); // Log the directions object
-        directionsRenderer.setDirections(result); // Set directions to the DirectionsRenderer
-      } else {
-        console.error('Directions request failed due to ' + status);
-      }
+
+      const request = { ...requestTemplate, travelMode: mode };
+      return { mode, request };
     });
-  }, [directionsService, directionsRenderer]);
+
+    directionsRequests.forEach(({ mode, request }) => {
+      directionsServices[mode].route(request, (result, status) => {
+        console.log(status); // Log the status
+        if (status === 'OK') {
+          console.log(result); // Log the directions object
+          directionsRenderers[mode].setDirections(result);
+          // Set directions to the DirectionsRenderer
+          if (mode === 'BICYCLING') {
+            // Set polyline color to a different color for bicycling mode
+            directionsRenderers[mode].setOptions({
+              polylineOptions: {
+                strokeColor: 'green', // Change the color here
+              },
+            });
+          }
+        } else {
+          console.error('Directions request failed due to ' + status);
+        }
+      });
+    });
+  }, [directionsServices, directionsRenderers, places]);
 
   // Set polyline color to black
   useEffect(() => {
-    if (directionsRenderer) {
-      directionsRenderer.setOptions({
-        polylineOptions: {
-          clickable: false,
-          strokeColor: 'blue',
-          strokeWeight: 3,
-          strokeOpacity: 1,
-          geodesic: false,
-        },
-        suppressMarkers: true,
-      });
-    }
-  }, [directionsRenderer]);
+    Object.values(directionsRenderers).forEach(renderer => {
+      if (renderer) {
+        renderer.setOptions({
+          polylineOptions: {
+            clickable: false,
+            strokeColor: 'blue',
+            strokeWeight: 3,
+            strokeOpacity: 1,
+            geodesic: false,
+          },
+          suppressMarkers: true,
+        });
+      }
+    });
+  }, [directionsRenderers]);
 
   return (
     <>
@@ -156,5 +205,6 @@ function Directions({ places }) {
     </>
   );
 }
+
 
 export default LyfterMap;
